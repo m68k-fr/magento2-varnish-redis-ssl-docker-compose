@@ -1,83 +1,88 @@
-version: '3'
+version: '3.5'
 services:
   ssl_server:
    build:
      context: ./ssl_server/
    container_name: nginx
    depends_on:
-     - web_server
-     - cache_server
-     - database_server
+     - web
+     - varnish
      - redis_server
    volumes:
      - ./ssl_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
      - ./ssl_server/default:/etc/nginx/sites-enabled/default
      - ./ssl_server/nginx.conf:/etc/nginx/nginx.conf
    links:
-     - web_server
-     - cache_server
-     - database_server
+     - web
+     - varnish
      - redis_server
-   ports: 
+   ports:
      - "80:80"
      - "443:443"
-       
+
   redis_server:
     build:
       context: ./redis_server/
     container_name: redis
     depends_on:
-      - web_server
-      - cache_server
-      - database_server
+      - web
+      - varnish
     volumes:
       - ./redis_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     links:
-      - web_server
-      - database_server
+      - web
 
     ports:
       - "6379:6379"
 
-  cache_server:
+  varnish:
     build:
-      context: ./cache_server/
+      context: ./varnish/
     container_name: varnish
     depends_on:
-      - web_server
+      - web
     volumes:
-      - ./cache_server/default.vcl:/etc/varnish/default.vcl
-      - ./cache_server/varnish:/etc/default/varnish
-      - ./cache_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./varnish/default.vcl:/etc/varnish/default.vcl
+      - ./varnish/varnish:/etc/default/varnish
+      - ./varnish/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     ports:
       - "6081:6081"
       - "6082:6082"
     links:
-      - web_server
-      - database_server
+      - web
 
-
-  web_server:
+  web:
     build:
-      context: ./web_server/
+      context: ./apache2/
     container_name: apache2
+    depends_on:
+      - db
     volumes:
-      - ./magento2:/var/www/html  
-      - ./web_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./magento2:/var/www/html
+      - ./apache2/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     ports:
       - "8080:8080"
     links:
-      - database_server
-    
-  database_server:
-    build:
-      context: ./database_server/
-      args:
-        - mysql_password=magento2
-        - mysql_database=magento2
-    container_name: mysql
-    volumes: 
-      - ./database_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
-      - ./database_server/mysql.sh:/etc/mysql.sh
+      - db
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:4.9
+    ports:
+      - "8090:80"
+    links:
+      - db:db
+  db:
+    image: percona:5.7
     ports:
       - "3306:3306"
+    container_name: percona
+    volumes:
+      - dbdata:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=magento2
+      - MYSQL_DATABASE=magento2
+      - MYSQL_USER=magento2
+      - MYSQL_PASSWORD=magento2
+
+volumes:
+  dbdata:

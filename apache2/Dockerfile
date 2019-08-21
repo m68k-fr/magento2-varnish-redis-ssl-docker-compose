@@ -5,7 +5,7 @@ LABEL maintainer="Alankrit Srivastava <alankrit.srivastava256@webkul.com>"
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-    && apt-get -y install apache2 nano mysql-client \
+    && apt-get -y install apt-utils apache2 nano mysql-client \
     && a2enmod rewrite \
     && a2enmod headers \
     && export LANG=en_US.UTF-8 \
@@ -14,7 +14,7 @@ RUN apt-get update \
     && apt-get install -y language-pack-en-base \
     && LC_ALL=en_US.UTF-8 add-apt-repository ppa:ondrej/php \
     && apt-get update \
-    && apt-get -y install curl git php7.2 php7.2-curl php7.2-intl php7.2-gd php7.2-dom php7.2-iconv php7.2-xsl php7.2-mbstring php7.2-ctype php7.2-zip php7.2-pdo php7.2-xml php7.2-bz2 php7.2-calendar php7.2-exif php7.2-fileinfo php7.2-json php7.2-mysqli php7.2-mysql php7.2-posix php7.2-tokenizer php7.2-xmlwriter php7.2-xmlreader php7.2-phar php7.2-soap php7.2-mysql php7.2-fpm php7.2-bcmath libapache2-mod-php7.2 \
+    && apt-get -y install curl zip unzip git php7.2 php7.2-curl php7.2-intl php7.2-gd php7.2-dom php7.2-iconv php7.2-xsl php7.2-mbstring php7.2-ctype php7.2-zip php7.2-pdo php7.2-xml php7.2-bz2 php7.2-calendar php7.2-exif php7.2-fileinfo php7.2-json php7.2-mysqli php7.2-mysql php7.2-posix php7.2-tokenizer php7.2-xmlwriter php7.2-xmlreader php7.2-phar php7.2-soap php7.2-mysql php7.2-fpm php7.2-bcmath libapache2-mod-php7.2 \
     && sed -i -e"s/^memory_limit\s*=\s*128M/memory_limit = 512M/" /etc/php/7.2/apache2/php.ini \
     && rm /var/www/html/* \
     && sed -i "s/None/all/g" /etc/apache2/apache2.conf \
@@ -32,7 +32,8 @@ env LANG               C
 
 WORKDIR /var/www/html
 
-RUN curl -o /tmp/composer-setup.php https://getcomposer.org/installer; \
+RUN usermod -u 1000 www-data; \
+curl -o /tmp/composer-setup.php https://getcomposer.org/installer; \
 curl -o /tmp/composer-setup.sig https://composer.github.io/installer.sig; \
 php -r "if (hash('SHA384', file_get_contents('/tmp/composer-setup.php')) !== trim(file_get_contents('/tmp/composer-setup.sig'))) { unlink('/tmp/composer-setup.php'); echo 'Invalid installer' . PHP_EOL; exit(1); }"; \
 php /tmp/composer-setup.php --no-ansi --install-dir=/usr/local/bin --filename=composer; \

@@ -46,7 +46,7 @@ sleep 45
 
 docker exec --user www-data apache2 bin/magento setup:install \
 --base-url='http://magento2.docker' \
---db-host='database_server' \
+--db-host='db' \
 --db-name='magento2' \
 --db-user='root' \
 --db-password='magento2' \
