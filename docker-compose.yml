@@ -54,6 +54,10 @@ services:
   web:
     build:
       context: ./apache2/
+      args:
+        TIMEZONE: ${TIMEZONE}
+        LOCALES: ${LOCALES}
+        LANGUAGE: ${LANGUAGE}
     container_name: apache2
     depends_on:
       - db
@@ -67,6 +71,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:4.9
+    container_name: phpmyadmin
     ports:
       - "8090:80"
     links:
