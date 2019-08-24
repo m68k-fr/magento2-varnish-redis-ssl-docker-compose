@@ -4,6 +4,12 @@ LABEL maintainer="llemoullec@gmail.com>"
 
 ARG TIMEZONE
 ARG LOCALES
+ARG LANGUAGE
+
+ARG USER_NAME
+ARG USER_UID
+ARG GROUP_NAME
+ARG GROUP_UID
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -29,7 +35,6 @@ RUN apt-get update \
     && rm /var/www/html/* \
     && sed -i "s/None/all/g" /etc/apache2/apache2.conf \
     && sed -i "s/80/8080/g" /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf \
-##install supervisor and setup supervisord.conf file
     && apt-get install -y supervisor \
     && mkdir -p /var/log/supervisor
 env APACHE_RUN_USER    www-data
@@ -45,14 +50,18 @@ WORKDIR /var/www/html
 RUN rm /etc/localtime
 RUN ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
 
-RUN usermod -u 1000 www-data; \
-curl -o /tmp/composer-setup.php https://getcomposer.org/installer; \
+RUN curl -o /tmp/composer-setup.php https://getcomposer.org/installer; \
 curl -o /tmp/composer-setup.sig https://composer.github.io/installer.sig; \
 php -r "if (hash('SHA384', file_get_contents('/tmp/composer-setup.php')) !== trim(file_get_contents('/tmp/composer-setup.sig'))) { unlink('/tmp/composer-setup.php'); echo 'Invalid installer' . PHP_EOL; exit(1); }"; \
 php /tmp/composer-setup.php --no-ansi --install-dir=/usr/local/bin --filename=composer; \
 rm /tmp/composer-setup.php; \
 chmod +x /usr/local/bin/composer; \
 mkdir -p /root/.composer
+
+RUN groupadd --gid ${GROUP_UID} ${GROUP_NAME} \
+  && useradd --uid ${USER_UID} --gid ${GROUP_NAME} --shell /bin/bash --create-home ${USER_NAME}
+RUN chown -R ${USER_NAME} /var/www/html/
+RUN usermod -a -G www-data ${USER_NAME}
 
 CMD ["/usr/bin/supervisord"]
 

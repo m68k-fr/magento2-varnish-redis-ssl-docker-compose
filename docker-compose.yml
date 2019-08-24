@@ -58,6 +58,10 @@ services:
         TIMEZONE: ${TIMEZONE}
         LOCALES: ${LOCALES}
         LANGUAGE: ${LANGUAGE}
+        USER_NAME: ${USER_NAME}
+        USER_UID: ${USER_UID}
+        GROUP_NAME: ${GROUP_NAME}
+        GROUP_UID: ${GROUP_UID}
     container_name: apache2
     depends_on:
       - db
@@ -84,10 +88,10 @@ services:
     volumes:
       - dbdata:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=magento2
-      - MYSQL_DATABASE=magento2
-      - MYSQL_USER=magento2
-      - MYSQL_PASSWORD=magento2
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
 
 volumes:
   dbdata:
