@@ -58,11 +58,19 @@ rm /tmp/composer-setup.php; \
 chmod +x /usr/local/bin/composer; \
 mkdir -p /root/.composer
 
+# Create matching user/group
 RUN groupadd --gid ${GROUP_UID} ${GROUP_NAME} \
   && useradd --uid ${USER_UID} --gid ${GROUP_NAME} --shell /bin/bash --create-home ${USER_NAME}
 RUN chown -R ${USER_NAME} /var/www/html/
 RUN usermod -a -G www-data ${USER_NAME}
 
+# Install Mhsendmail
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install golang-go \
+   && mkdir /opt/go \
+   && export GOPATH=/opt/go \
+   && go get github.com/mailhog/mhsendmail
+
+# copy Composer auth file
 COPY --chown=${USER_NAME}:www-data auth.json /home/${USER_NAME}/.composer/auth.json
 
 CMD ["/usr/bin/supervisord"]

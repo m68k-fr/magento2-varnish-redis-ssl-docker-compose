@@ -66,12 +66,22 @@ services:
     depends_on:
       - db
     volumes:
-      - ./magento2:/var/www/html
+      - ${MAGENTO_BASE_FOLDER}:/var/www/html
       - ./apache2/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./apache2/php.ini:/etc/php/7.2/apache2/conf.d/999-customphp.ini
     ports:
       - "8080:8080"
     links:
       - db
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - 1025:1025
+      - 8025:8025
+    links:
+      - web
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:4.9
