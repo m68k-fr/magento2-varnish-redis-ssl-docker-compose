@@ -63,5 +63,7 @@ RUN groupadd --gid ${GROUP_UID} ${GROUP_NAME} \
 RUN chown -R ${USER_NAME} /var/www/html/
 RUN usermod -a -G www-data ${USER_NAME}
 
+COPY --chown=${USER_NAME}:www-data auth.json /home/${USER_NAME}/.composer/auth.json
+
 CMD ["/usr/bin/supervisord"]
 

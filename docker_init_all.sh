@@ -1,13 +1,19 @@
 #!/bin/bash
 
-## todo: Test if service 80,3306,8080 are running
+## todo: Add support for custom php.ini
+## todo: Add support for XDebug
+## todo: Add a mailhog
+## todo: Add SSL support
+## todo: Add ElasticSearch
+## todo: Add the redis.patch
+
+## todo: Warning if not launched from an Ubuntu distribution
+## todo: Warning if no auth.json is available in the user home folder
 ## todo: Warning if current user is not in group www-data on host
 ## todo: Warning if BASE_URL is defined on host
-## todo: Add the redis.patch
-## todo: Save magento access key in /home/${USER}/.composer/auth.json
+## todo: Error if service 80,3306,8080 are running
+## todo: Error if .env file is missing
 ## todo: Update README.md
-## todo: Add support for XDebug
-## todo: Add a mail catcher
 
 ## Test and import .env file
 
@@ -19,28 +25,23 @@ else
     exit 1
 fi
 
-## Check existing Magento2 Folder
+## Check and copy existing auth.json
 
-if [[ ! -f magento2_archive/${ARCHIVE} ]]
+if [[ ! -f /home/${USER_NAME}/.composer/auth.json ]]
 then
-    echo "$ARCHIVE is missing..."
+    echo "/home/$USER_NAME/.composer/auth.json is missing..."
     exit 1
 fi
+cp /home/${USER_NAME}/.composer/auth.json apache2/
+
+## Check existing Magento2 Folder
 
 if [[ -d magento2 ]]
 then
     echo "magento2/ folder already exists, if you want to reinstall, please remove it.";
     exit 1
 fi
-
-## Copy Magento2 Archive
-
 mkdir magento2
-cp magento2_archive/${ARCHIVE} magento2/
-if [[ $? -ne 0 ]]; then
-	echo "Unable to copy /magento2_archive/${ARCHIVE} to magento2/"
-	exit 1
-fi
 
 ## Compile & Launch docker
 
@@ -50,19 +51,13 @@ if [[ $? -ne 0 ]]; then
 	exit 1
 fi
 
-## Unpack Magento Archive
-echo "Unpacking your Magento2 Archive."
-docker exec --user ${USER_NAME} apache2 tar xzf ${ARCHIVE}
-docker exec --user ${USER_NAME} apache2 rm ${ARCHIVE}
+## Create Magento 2 project
+echo "Creating Magento2 project."
+docker exec --user ${USER_NAME} apache2 composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition .
 docker exec --user ${USER_NAME} apache2 find var generated vendor pub/static pub/media app/etc -type f -exec chmod g+w {} +
 docker exec --user ${USER_NAME} apache2 find var generated vendor pub/static pub/media app/etc -type d -exec chmod g+ws {} +
 docker exec apache2 chown -R :www-data .
 docker exec apache2 chmod u+x bin/magento
-
-## Sleeping 30 seconds
-
-echo "Sleeping 30 seconds to wait for all containers to fully initialize."
-sleep 30
 
 ## Install Magento
 
@@ -85,7 +80,7 @@ docker exec --user ${USER_NAME} apache2 bin/magento setup:install \
  \
 
 if [ $? -ne 0 ]; then
-	echo "An error occured installing Magento2."
+	echo "An error occured while installing Magento2."
 	exit 1
 fi
 
@@ -93,6 +88,11 @@ fi
 
 docker exec -it --user ${USER_NAME} apache2 bin/magento deploy:mode:set developer
 docker exec -it --user ${USER_NAME} apache2 rm -rf generated/code/* generated/metadata/*
+
+# Install sample data
+
+docker exec -it --user ${USER_NAME} apache2 bin/magento sampledata:deploy
+docker exec -it --user ${USER_NAME} apache2 bin/magento setup:upgrade
 
 # Magento 2 french language pack
 
@@ -107,4 +107,3 @@ docker exec -it --user ${USER_NAME} apache2 bin/magento cache:enable
 # Create and enable cron
 docker exec -it apache2 service cron start
 docker exec -it --user ${USER_NAME} apache2 bin/magento cron:install
-
