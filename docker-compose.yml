@@ -19,6 +19,7 @@ services:
    ports:
      - "80:80"
      - "443:443"
+     - "9001:9000"
 
   redis_server:
     build:
