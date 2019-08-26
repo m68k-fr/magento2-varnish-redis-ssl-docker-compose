@@ -1,31 +1,9 @@
 #!/bin/bash
 
-## todo: Add support for XDebug
-## todo: Add SSL support
-## todo: Add ElasticSearch
 ## todo: Add the redis.patch
-
 ## todo: Warning if no auth.json is available in the user home folder
-## todo: Warning if MAGENTO_BASE_URL is not defined on host
 ## todo: Error if service 80,443,3306,8080,8090,1025,8025 are running on host
 ## todo: Update README.md
-
-## Disclaimer if not launch from Ubuntu
-
-UNAME=$(uname | tr "[:upper:]" "[:lower:]")
-# If Linux, try to determine specific distribution
-if [ "$UNAME" == "linux" ]; then
-    # If available, use LSB to identify distribution
-    if [ -f /etc/lsb-release -o -d /etc/lsb-release.d ]; then
-        export DISTRO=$(lsb_release -i | cut -d: -f2 | sed s/'^\t'//)
-    # Otherwise, use release info file
-    else
-        export DISTRO=$(ls -d /etc/[A-Za-z]*[_-][rv]e[lr]* | grep -v "lsb" | cut -d'/' -f3 | cut -d'-' -f1 | cut -d'_' -f1)
-    fi
-fi
-if [[ ! "$DISTRO" == "Ubuntu" ]]; then
-    echo "Disclaimer: Welcome $DISTRO user. FYI, this Docker stack has only been Tested on Ubuntu..."
-fi
 
 ## Test and import .env file
 
@@ -37,41 +15,22 @@ else
     exit 1
 fi
 
-## Test if the targetted user is in www-data group
+## Check existing Magento2 folder content
 
-if ! groups ${USER_NAME} | grep &>/dev/null '\bwww-data\b'; then
-    echo "Error: $USER_NAME user is not a member of the www-data group"
-    exit 1
-fi
-
-## Check and copy the Composer auth.json file
-
-if [[ ! -f /home/${USER_NAME}/.composer/auth.json ]]
+if [[ ! -d ${MAGENTO_BASE_FOLDER} ]]
 then
-    echo "ERROR: /home/$USER_NAME/.composer/auth.json is missing..."
-    exit 1
+    mkdir ${MAGENTO_BASE_FOLDER}
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Enable to create $MAGENTO_BASE_FOLDER."
+        exit 1
+    fi
+    docker-compose down
+    docker-compose up -d
 fi
-cp /home/${USER_NAME}/.composer/auth.json apache2/
-
-## Check existing Magento2 Folder, Create one if none exists
-
-if [[ -d ${MAGENTO_BASE_FOLDER} ]]
+if [[ "$(ls -A ${MAGENTO_BASE_FOLDER})" ]]
 then
-    echo "ERROR: $MAGENTO_BASE_FOLDER folder already exists, if you want to reinstall, please remove it.";
+    echo "ERROR: $MAGENTO_BASE_FOLDER folder is not empty, if you want to reinstall Magento, please wipe this folder first.";
     exit 1
-fi
-mkdir ${MAGENTO_BASE_FOLDER}
-if [[ $? -ne 0 ]]; then
-	echo "ERROR: Enable to create $MAGENTO_BASE_FOLDER."
-	exit 1
-fi
-
-## Compile & Launch the Docker stack
-
-docker-compose up -d
-if [[ $? -ne 0 ]]; then
-	echo "ERROR: An error occurred while launching the docker stack."
-	exit 1
 fi
 
 ## Create Magento 2 project
@@ -87,6 +46,9 @@ docker exec apache2 chmod u+x bin/magento
 
 docker exec --user ${USER_NAME} apache2 bin/magento setup:install \
 --base-url="http://${MAGENTO_BASE_URL}" \
+--base-url-secure="https://${MAGENTO_BASE_URL}" \
+--use-secure=1 \
+--use-secure-admin=1 \
 --db-host='db' \
 --db-name="${MYSQL_DATABASE}" \
 --db-user="${MYSQL_USER}" \
@@ -125,12 +87,26 @@ docker exec -it --user ${USER_NAME} apache2 bin/magento setup:upgrade
 # Optional: Install Magento 2 french language pack
 
 docker exec -it --user ${USER_NAME} apache2 composer require mageplaza/magento-2-french-language-pack:dev-master
-docker exec -it --user ${USER_NAME} apache2 bin/magento cache:clean
-docker exec -it --user ${USER_NAME} apache2 bin/magento cache:flush
 
-# Enable all cache
+# Enable all cache & activate Varnish
 
 docker exec -it --user ${USER_NAME} apache2 bin/magento cache:enable
+docker exec -it --user ${USER_NAME} apache2 bin/magento setup:config:set --http-cache-hosts=varnish:6081
+docker exec -it --user ${USER_NAME} apache2 bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application 2
+
+# Activate Redis Cache
+cp env_redis.patch ${MAGENTO_BASE_FOLDER}
+pushd  ${MAGENTO_BASE_FOLDER}
+patch -p0  app/etc/env.php env_redis.patch
+rm env_redis.patch
+popd
+
+# Clear All Caches
+
+docker exec -it --user ${USER_NAME} apache2 bin/magento cache:clean
+docker exec -it --user ${USER_NAME} apache2 bin/magento cache:flush
+rm -rf ${MAGENTO_BASE_FOLDER}/var/cache/*
+rm -fr ${MAGENTO_BASE_FOLDER}/var/page_cache/*
 
 # Create and enable cron
 docker exec -it apache2 service cron start

@@ -1,5 +1,46 @@
 version: '3.5'
 services:
+
+  web:
+    build:
+      context: ./apache2/
+      args:
+        TIMEZONE: ${TIMEZONE}
+        LOCALES: ${LOCALES}
+        LANGUAGE: ${LANGUAGE}
+        USER_NAME: ${USER_NAME}
+        USER_UID: ${USER_UID}
+        GROUP_NAME: ${GROUP_NAME}
+        GROUP_UID: ${GROUP_UID}
+    container_name: apache2
+    volumes:
+      - ${MAGENTO_BASE_FOLDER}:/var/www/html
+      - ./apache2/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./apache2/php.ini:/etc/php/7.2/apache2/conf.d/999-customphp.ini
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - magento-network
+
+  db:
+    image: percona:5.7
+    ports:
+      - "3306:3306"
+    container_name: percona
+    volumes:
+      - dbdata:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - magento-network
+
   ssl_server:
    build:
      context: ./ssl_server/
@@ -12,14 +53,12 @@ services:
      - ./ssl_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
      - ./ssl_server/default:/etc/nginx/sites-enabled/default
      - ./ssl_server/nginx.conf:/etc/nginx/nginx.conf
-   links:
-     - web
-     - varnish
-     - redis_server
    ports:
      - "80:80"
      - "443:443"
      - "9001:9000"
+   networks:
+     - magento-network
 
   redis_server:
     build:
@@ -30,11 +69,10 @@ services:
       - varnish
     volumes:
       - ./redis_server/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
-    links:
-      - web
-
     ports:
       - "6379:6379"
+    networks:
+      - magento-network
 
   varnish:
     build:
@@ -49,31 +87,8 @@ services:
     ports:
       - "6081:6081"
       - "6082:6082"
-    links:
-      - web
-
-  web:
-    build:
-      context: ./apache2/
-      args:
-        TIMEZONE: ${TIMEZONE}
-        LOCALES: ${LOCALES}
-        LANGUAGE: ${LANGUAGE}
-        USER_NAME: ${USER_NAME}
-        USER_UID: ${USER_UID}
-        GROUP_NAME: ${GROUP_NAME}
-        GROUP_UID: ${GROUP_UID}
-    container_name: apache2
-    depends_on:
-      - db
-    volumes:
-      - ${MAGENTO_BASE_FOLDER}:/var/www/html
-      - ./apache2/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
-      - ./apache2/php.ini:/etc/php/7.2/apache2/conf.d/999-customphp.ini
-    ports:
-      - "8080:8080"
-    links:
-      - db
+    networks:
+      - magento-network
 
   mailhog:
     image: mailhog/mailhog
@@ -81,28 +96,20 @@ services:
     ports:
       - 1025:1025
       - 8025:8025
-    links:
-      - web
+    networks:
+      - magento-network
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:4.9
     container_name: phpmyadmin
     ports:
       - "8090:80"
-    links:
-      - db:db
-  db:
-    image: percona:5.7
-    ports:
-      - "3306:3306"
-    container_name: percona
-    volumes:
-      - dbdata:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - magento-network
+
+networks:
+  magento-network:
+    driver: bridge
 
 volumes:
   dbdata:
