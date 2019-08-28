@@ -80,16 +80,18 @@ Elasticsearch Server Hostname: elasticsearch
 
 ## Docker 911 Survival Guide:
 ```
-# shut down all services
+# shut down all services:
 docker-compose down
-# Run all services
+# Start all services:
 docker-compose up -d
-# List all running containers
+# List all running containers:
 docker ps
+# Opening a terminal on the apache/php container:
+docker exec -ti --user ${USER_NAME} apache2 bash
 ```
 
 ## Uninstall:
-
+Shut down all containers, delete compiled images, Docker networks, Volumes etc.
 ```
 ./docker_erase_all.sh
 ```
