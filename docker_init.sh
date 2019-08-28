@@ -1,8 +1,6 @@
 #!/bin/bash
 
 ## todo: Add SSL support (certificate for browser)
-## todo: Update README.md
-## todo: elasticsearch requirement on host: sudo sysctl -w vm.max_map_count=262144
 
 ## Disclaimer if not launch from Ubuntu
 

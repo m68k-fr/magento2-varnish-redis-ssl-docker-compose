@@ -1,9 +1,6 @@
 #!/bin/bash
 
-## todo: Add the redis.patch
-## todo: Warning if no auth.json is available in the user home folder
 ## todo: Error if service 80,443,3306,8080,8090,1025,8025 are running on host
-## todo: Update README.md
 
 ## Test and import .env file
 
@@ -95,11 +92,9 @@ docker exec -it --user ${USER_NAME} apache2 bin/magento setup:config:set --http-
 docker exec -it --user ${USER_NAME} apache2 bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application 2
 
 # Activate Redis Cache
-cp env_redis.patch ${MAGENTO_BASE_FOLDER}
-pushd  ${MAGENTO_BASE_FOLDER}
-patch -p0  app/etc/env.php env_redis.patch
-rm env_redis.patch
-popd
+
+docker exec -it --user ${USER_NAME} apache2 bin/magento setup:config:set --cache-backend=redis --cache-backend-redis-server=redis --cache-backend-redis-db=0
+docker exec -it --user ${USER_NAME} apache2 bin/magento setup:config:set --page-cache=redis --page-cache-redis-server=redis --page-cache-redis-db=1
 
 # Clear All Caches
 
