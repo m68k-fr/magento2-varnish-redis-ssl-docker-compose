@@ -4,7 +4,7 @@
 * Container 1: Nginx (SSL reverse proxy)
 * Container 2: Redis (volatile, for Magento's cache)
 * Container 3: Varnish (volatile, for Magento's full page cache)
-* Container 4: Apache 2.4 + PHP 7.2 (modphp)
+* Container 4: Apache 2.4 + PHP 7.1 (modphp)
 * Container 5: PhpMyAdmin
 * Container 6: Percona 5.7
 * Container 7: ElasticSearch 6
@@ -41,9 +41,13 @@ sudo usermod -aG www-data $USER
 ```
 sudo sysctl -w vm.max_map_count=262144
 ```
+To set this value permanently, update the vm.max_map_count setting in /etc/sysctl.conf.  
+To verify after rebooting, run sysctl vm.max_map_count.
 
 
 ## Installation:
+
+* Get the project : 
 
 ```
 git clone https://github.com/m68k-fr/magento2-varnish-redis-ssl-docker-compose.git
@@ -51,8 +55,9 @@ cd magento2-varnish-redis-ssl-docker-compose
 cp .env.dist .env
 ```
 
-Edit the user/group settings and the Magento Keys couple in the .env file.
+* Edit the user/group settings and the Magento Keys couple in the .env file.
 
+* Run the installer :
 ```
 ./docker_init.sh 
 ./docker_install_magento.sh
@@ -71,18 +76,33 @@ Edit the user/group settings and the Magento Keys couple in the .env file.
 * Magento backend login: admin
 * Magento backend password: admin123
 * MailHog: http://magento2.docker:8025
+
+## Language & Samples Data:
+
+The French language pack & Sample data are installed by default:  
+To update this, edit the docker_install_script.sh to comment the two relative sections. 
  
 ## Post-Configuration:
+
+### Elasticsearch:
 
 You need to configure Magento to use Elasticsearch:  
 https://devdocs.magento.com/guides/v2.3/config-guide/elasticsearch/configure-magento.html  
 Elasticsearch Server Hostname: elasticsearch 
 
-## Docker 911 Survival Guide:
+### XDebug:
+
+For performance reason, XDebug is not active by default.  
+Use the following command to activate/deactivate XDebug:
 ```
-# shut down all services:
+docker exec apache2 xdebug
+```
+
+## Docker Survival Command Guide:
+```
+# Shut down all services:
 docker-compose down
-# Start all services:
+# Compile and start all services:
 docker-compose up -d
 # List all running containers:
 docker ps

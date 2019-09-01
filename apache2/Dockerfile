@@ -30,8 +30,8 @@ RUN apt-get update \
     && apt-get install -y language-pack-en-base \
     && add-apt-repository ppa:ondrej/php \
     && apt-get update \
-    && apt-get -y install curl zip unzip git php7.2 php7.2-curl php7.2-intl php7.2-gd php7.2-dom php7.2-iconv php7.2-xsl php7.2-mbstring php7.2-ctype php7.2-zip php7.2-pdo php7.2-xml php7.2-bz2 php7.2-calendar php7.2-exif php7.2-fileinfo php7.2-json php7.2-mysqli php7.2-mysql php7.2-posix php7.2-tokenizer php7.2-xmlwriter php7.2-xmlreader php7.2-phar php7.2-soap php7.2-mysql php7.2-fpm php7.2-bcmath libapache2-mod-php7.2 php-xdebug \
-    && sed -i -e"s/^memory_limit\s*=\s*128M/memory_limit = 512M/" /etc/php/7.2/apache2/php.ini \
+    && apt-get -y install curl wget zip unzip git php7.1 php7.1-curl php7.1-intl php7.1-gd php7.1-dom php7.1-iconv php7.1-xsl php7.1-mbstring php7.1-ctype php7.1-zip php7.1-pdo php7.1-xml php7.1-bz2 php7.1-calendar php7.1-exif php7.1-fileinfo php7.1-json php7.1-mysqli php7.1-mysql php7.1-posix php7.1-tokenizer php7.1-xmlwriter php7.1-xmlreader php7.1-phar php7.1-soap php7.1-mysql php7.1-fpm php7.1-bcmath libapache2-mod-php7.1 php-xdebug \
+    && sed -i -e"s/^memory_limit\s*=\s*128M/memory_limit = 512M/" /etc/php/7.1/apache2/php.ini \
     && rm /var/www/html/* \
     && sed -i "s/None/all/g" /etc/apache2/apache2.conf \
     && sed -i "s/80/8080/g" /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf \
@@ -64,14 +64,25 @@ RUN groupadd --gid ${GROUP_UID} ${GROUP_NAME} \
 RUN chown -R ${USER_NAME} /var/www/html/
 RUN usermod -a -G www-data ${USER_NAME}
 
+# Deactivate Xdebug
+RUN mv /etc/php/7.1/mods-available/xdebug.ini /etc/php/7.1/mods-available/xdebug.iniOLD
+
 # Install Mhsendmail
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install golang-go \
    && mkdir /opt/go \
    && export GOPATH=/opt/go \
    && go get github.com/mailhog/mhsendmail
 
+# Install Magerun 2
+RUN wget https://files.magerun.net/n98-magerun2.phar \
+	&& chmod +x ./n98-magerun2.phar \
+	&& mv ./n98-magerun2.phar /usr/local/bin/
+
 # copy Composer auth file
 COPY --chown=${USER_NAME}:www-data auth.json /home/${USER_NAME}/.composer/auth.json
 
-CMD ["/usr/bin/supervisord"]
+# copy helper scripts
+COPY bin/* /usr/local/bin/
+RUN chmod +x /usr/local/bin/*
 
+CMD ["/usr/bin/supervisord"]

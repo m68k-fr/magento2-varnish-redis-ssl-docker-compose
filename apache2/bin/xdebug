@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ -s "/etc/php/7.1/mods-available/xdebug.ini" ]; then
+   mv /etc/php/7.1/mods-available/xdebug.ini /etc/php/7.1/mods-available/xdebug.iniOLD \
+   && /etc/init.d/apache2 force-reload \
+   && echo '========= XDebug was disabled ========='
+else
+  mv /etc/php/7.1/mods-available/xdebug.iniOLD /etc/php/7.1/mods-available/xdebug.ini \
+  && /etc/init.d/apache2 force-reload \
+  && echo '========= XDebug was enabled ========='
+fi
