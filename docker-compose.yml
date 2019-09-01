@@ -16,7 +16,7 @@ services:
     volumes:
       - ${MAGENTO_BASE_FOLDER}:/var/www/html
       - ./apache2/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
-      - ./apache2/php.ini:/etc/php/7.2/apache2/conf.d/999-customphp.ini
+      - ./apache2/php.ini:/etc/php/7.1/apache2/conf.d/999-customphp.ini
     ports:
       - "8080:8080"
     depends_on:
